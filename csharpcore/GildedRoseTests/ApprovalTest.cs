@@ -12,7 +12,7 @@ namespace GildedRoseTests
     public class ApprovalTest
     {
         [Fact]
-        public void ThirtyDays()
+        public void OneHundredDays()
         {
             var fakeoutput = new StringBuilder();
             Console.SetOut(new StringWriter(fakeoutput));
