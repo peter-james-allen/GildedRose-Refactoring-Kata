@@ -1,83 +1,90 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace GildedRoseKata
 {
     public class GildedRose
     {
-        IList<Item> Items;
-        public GildedRose(IList<Item> Items)
+        private const int MAX_QUALITY = 50;
+        private const int MIN_QUALITY = 0;
+        private readonly ReadOnlyCollection<string> ITEMS_TO_NOT_UPDATE = new ReadOnlyCollection<string>(new[] { "Sulfuras, Hand of Ragnaros" });
+
+        private readonly IList<Item> Items;
+        private Item CurrentItem;
+        private int IncrementValue;
+
+        public GildedRose(IList<Item> items)
         {
-            this.Items = Items;
+            Items = items;
+            CurrentItem = new Item();
+            IncrementValue = 1;
         }
 
         public void UpdateQuality()
         {
             foreach (Item item in Items)
             {
-                if (item.Name != "Aged Brie" && item.Name != "Backstage passes to a TAFKAL80ETC concert")
-                {
-                    if (item.Name != "Sulfuras, Hand of Ragnaros")
-                    {
-                        DecreaseQuality(item);
-                    }
-                }
-                else
-                {
-                    IncreaseQuality(item);
+                CurrentItem = item;
 
-                    if (item.Name == "Backstage passes to a TAFKAL80ETC concert")
-                    {
-                        if (item.SellIn < 11)
-                        {
-                            IncreaseQuality(item);
-                        }
+                if (DoNotUpdate()) continue;
 
-                        if (item.SellIn < 6)
-                        {
-                            IncreaseQuality(item);
-                        }
-                    }
-                }
+                UpdateCurrentItemSellIn();
 
-                UpdateSellIn(item);
-
-                if (item.SellIn < 0)
-                {
-                    if (item.Name != "Aged Brie")
-                    {
-                        if (item.Name != "Backstage passes to a TAFKAL80ETC concert")
-                        {
-                            if (item.Name != "Sulfuras, Hand of Ragnaros")
-                            {
-                                DecreaseQuality(item);
-                            }
-                        }
-                        else
-                        {
-                            item.Quality = item.Quality - item.Quality;
-                        }
-                    }
-                    else
-                    {
-                        IncreaseQuality(item);
-                    }
-                }
+                UpdateCurrentItemQuality();
             }
         }
 
-        private void IncreaseQuality(Item item)
+        private bool DoNotUpdate()
         {
-            if (item.Quality < 50) item.Quality++;
+            return ITEMS_TO_NOT_UPDATE.Contains(CurrentItem.Name);
         }
 
-        private void DecreaseQuality(Item item)
+        private void UpdateCurrentItemSellIn()
         {
-            if (item.Quality > 0) item.Quality--;
+            CurrentItem.SellIn--;
+            UpdateIncrementIfExpired();
         }
 
-        private void UpdateSellIn(Item item)
+        private void UpdateIncrementIfExpired()
         {
-            if (item.Name != "Sulfuras, Hand of Ragnaros") item.SellIn--;
+            IncrementValue = CurrentItem.SellIn < 0 ? 2 : 1;
+        }
+
+        private void UpdateCurrentItemQuality()
+        {
+            switch (CurrentItem.Name)
+            {
+                case "Aged Brie":
+                    IncreaseQuality();
+                    break;
+
+                case "Backstage passes to a TAFKAL80ETC concert":
+                    IncrementValue = CurrentItem.SellIn < 5 ? 3 : CurrentItem.SellIn < 10 ? 2 : 1;
+                    IncreaseQuality();
+                    if (CurrentItem.SellIn < 0) CurrentItem.Quality = 0;
+                    break;
+
+                default:
+                    DecreaseQuality();
+                    break;
+            }
+
+            SetCurrentItemQualityLimit();
+        }
+        private void IncreaseQuality()
+        {
+            CurrentItem.Quality += IncrementValue;
+        }
+
+        private void DecreaseQuality()
+        {
+            CurrentItem.Quality -= IncrementValue;
+        }
+
+        private void SetCurrentItemQualityLimit()
+        {
+            CurrentItem.Quality = Math.Clamp(CurrentItem.Quality, MIN_QUALITY, MAX_QUALITY);
         }
     }
 }
